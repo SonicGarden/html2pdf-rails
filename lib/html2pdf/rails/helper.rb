@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "html2pdf/rails/client"
-
 module Html2Pdf
   module Rails
     module Helper
