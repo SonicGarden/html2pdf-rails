@@ -30,7 +30,7 @@ class ThingsController < ApplicationController
     respond_to do |format|
       format.html
       format.pdf do
-        render_to_pdf pdf: "file_name"   # Excluding ".pdf" extension.
+        render_to_pdf pdf: 'file_name'   # Excluding ".pdf" extension.
       end
     end
   end
@@ -60,7 +60,7 @@ class ThingsController < ApplicationController
       format.html
       format.pdf do
         render_to_pdf(
-          pdf: "file_name",                   # Excluding ".pdf" extension.
+          pdf: 'file_name',                   # Excluding ".pdf" extension.
           disposition: 'attachment',          # default 'inline'
           template: 'things/show',
           layout: 'pdf',                      # for a pdf.pdf.erb file

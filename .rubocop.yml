@@ -1,0 +1,5 @@
+inherit_gem:
+  sgcop: rails/rubocop.yml
+
+AllCops:
+  TargetRubyVersion: 2.5

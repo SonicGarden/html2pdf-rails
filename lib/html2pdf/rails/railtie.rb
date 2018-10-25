@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require "html2pdf/rails/rendering"
-require "html2pdf/rails/helper"
+require 'html2pdf/rails/rendering'
+require 'html2pdf/rails/helper'
 
 module Html2Pdf
   module Rails

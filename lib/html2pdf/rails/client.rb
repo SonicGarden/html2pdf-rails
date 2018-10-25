@@ -20,9 +20,9 @@ module Html2Pdf
 
       private
 
-        def headers
-          { 'Content-Type' => 'application/json' }
-        end
+      def headers
+        { 'Content-Type' => 'application/json' }
+      end
     end
   end
 end
