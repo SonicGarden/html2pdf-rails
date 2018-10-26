@@ -6,17 +6,17 @@ require 'html2pdf/rails/helper'
 module Html2Pdf
   module Rails
     class Railtie < ::Rails::Railtie
-      config.html2pdf_rails = ActiveSupport::OrderedOptions.new
-      config.html2pdf_rails.endpoint = nil
+      ActiveSupport.on_load(:action_controller) do
+        ActionController::Base.prepend Rendering
+      end
 
-      initializer 'html2pdf-rails.register' do |_app|
-        ActionController::Base.send :prepend, Rendering
-        ActionView::Base.send :include, Helper
+      ActiveSupport.on_load(:action_view) do
+        ActionView::Base.include Helper
       end
 
       config.after_initialize do
-        if config.html2pdf_rails.endpoint.blank?
-          raise 'config.html2pdf_rails.endpoint is required'
+        if Html2Pdf.config.endpoint.blank?
+          raise 'Html2Pdf.config.endpoint is required'
         end
       end
     end

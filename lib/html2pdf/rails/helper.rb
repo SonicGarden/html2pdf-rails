@@ -3,7 +3,7 @@
 module Html2Pdf
   module Rails
     module Helper
-      def pdf_base_tag
+      def html2pdf_base_tag
         # NOTE: for Ngrok
         host = request.headers['HTTP_X_ORIGINAL_HOST'] || request.host
         base_url = "#{request.protocol}#{host}"
