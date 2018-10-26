@@ -4,7 +4,7 @@ module Html2Pdf
   module Rails
     class Client
       def self.post(*args)
-        self.new(::Rails.application.config.html2pdf_rails.endpoint).post(*args)
+        self.new(Html2Pdf.config.endpoint).post(*args)
       end
 
       def initialize(endpoint)

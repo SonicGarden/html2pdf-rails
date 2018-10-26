@@ -44,7 +44,7 @@ Layout
 %html
   %head
     %meta{ charset: 'utf-8' }
-    = pdf_base_tag
+    = html2pdf_base_tag
     = stylesheet_link_tag 'pdf', media: 'all'
   %body
     #header= image_tag 'logo.jpg'
@@ -78,13 +78,43 @@ class ThingsController < ApplicationController
 end
 ```
 
+### Cloud Functions for Firebase Sample
+
+```javascript
+const functions = require("firebase-functions");
+const puppeteer = require("puppeteer");
+
+const runOptions = {
+  timeoutSeconds: 20,
+  memory: "1GB"
+};
+exports.html2pdf = functions
+  .runWith(runOptions)
+  .https.onRequest(
+    async ({ method, body: { html = "", pdfOptions = {} } }, res) => {
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ["--no-sandbox"]
+      });
+      const page = await browser.newPage();
+      await page.emulateMedia("print");
+      await page.goto("data:text/html;charset=UTF-8," + html, {
+        waitUntil: "networkidle0"
+      });
+      const pdf = await page.pdf(pdfOptions);
+      res.header({ "Content-Type": "application/pdf" });
+      res.send(pdf);
+    }
+  );
+```
+
 ## Configuration
 
 In `config/initializers/html2pdf_rails.rb`, you can configure the following values.
 
 ```ruby
-Rails.application.configure do
-  config.html2pdf_rails.endpoint = 'YOUR_HTTP_TRIGGER_ENDPOINT'
+Html2Pdf.configure do |config|
+  config.endpoint = 'YOUR_HTTP_TRIGGER_ENDPOINT'
 end
 ```
 
