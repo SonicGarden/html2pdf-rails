@@ -78,6 +78,31 @@ class ThingsController < ApplicationController
 end
 ```
 
+### Cloud Functions for Firebase Sample
+
+```javascript
+const functions = require('firebase-functions');
+const puppeteer = require('puppeteer');
+
+const runOptions = {
+  timeoutSeconds: 20,
+  memory: '1GB',
+};
+exports.html2pdf = functions
+  .runWith(runOptions)
+  .https.onRequest(async ({ method, body: { html = '', pdfOptions = {} } }, res) => {
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    await page.emulateMedia('print');
+    await page.goto("data:text/html;charset=UTF-8," + html, {
+      waitUntil: "networkidle0"
+    });
+    const pdf = await page.pdf(pdfOptions)
+    res.header({ 'Content-Type': 'application/pdf' });
+    res.send(pdf);
+  });
+```
+
 ## Configuration
 
 In `config/initializers/html2pdf_rails.rb`, you can configure the following values.
