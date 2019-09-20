@@ -6,6 +6,7 @@ module Html2Pdf
   class Config
     include ActiveSupport::Configurable
     config_accessor :endpoint
+    config_accessor :s3
   end
 
   class << self
