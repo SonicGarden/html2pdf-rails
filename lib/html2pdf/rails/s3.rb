@@ -10,7 +10,7 @@ module Html2Pdf
 
         def presigned_get_url(key, disposition: nil)
           options = {}
-          options[:response_content_disposition] ||= 'inline'
+          options[:response_content_disposition] = disposition || 'inline'
           instance.presigned_url(:get_object, key, **options)
         end
 
