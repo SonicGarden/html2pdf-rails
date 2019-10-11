@@ -14,43 +14,71 @@ module Html2Pdf
         _html2pdf_render_pdf_to_s3(options.delete(:pdf), options)
       end
 
+      def render_pdf_and_get_url(options)
+        _html2_pdf_render_pdf_and_get_url(options.delete(:pdf), options)
+      end
+
       private
 
-      def _html2pdf_default_options(options)
+      def _html2pdf_default_options(pdf_name, options)
         new_options = options.dup
         new_options[:layout] ||= false
         new_options[:template] ||= File.join(controller_path, action_name)
         new_options[:pdf_options] ||= {}
+        new_options[:file_name] = "#{pdf_name}.pdf"
+        new_options[:disposition] ||= 'inline'
         new_options
       end
 
+      def _html2_pdf_render_pdf_and_get_url(pdf_name, options = {})
+        options = _html2pdf_default_options(pdf_name, options)
+        unless /filename/.match(options[:disposition])
+          # NOTE: デフォルトでは Cloud Storage のファイルはディレクトリ名部分もファイル名になってしまうため、
+          # content-disposition でファイル名を指定する。
+          options[:disposition] += "; filename*=UTF-8''#{ERB::Util.url_encode(options[:file_name])}"
+        end
+        options[:put_to_storage] = true
+        json = JSON.parse _html2pdf_make_pdf(options)
+        json['url']
+      end
+
       def _html2pdf_render_pdf_to_s3(pdf_name, options = {})
-        disposition = options[:disposition] || 'inline'
-        file_name = "#{pdf_name}.pdf"
-        options = _html2pdf_default_options(options)
-        options[:storage_url] = ::Html2Pdf::Rails::S3.presigned_put_url(file_name)
+        options = _html2pdf_default_options(pdf_name, options)
+        options[:storage_url] = ::Html2Pdf::Rails::S3.presigned_put_url(options[:file_name])
 
         _html2pdf_make_pdf(options)
-        ::Html2Pdf::Rails::S3.presigned_get_url(file_name, disposition: disposition)
+        ::Html2Pdf::Rails::S3.presigned_get_url(options[:file_name], disposition: options[:disposition])
       end
 
       def _html2pdf_make_and_send_pdf(pdf_name, options = {})
-        disposition = options[:disposition] || 'inline'
-        options = _html2pdf_default_options(options)
+        options = _html2pdf_default_options(pdf_name, options)
 
         if options[:show_as_html]
           render_opts = options.slice(:template, :layout, :formats, :handlers)
           render(render_opts.merge({ content_type: 'text/html' }))
         else
           pdf_content = _html2pdf_make_pdf(options)
-          send_data(pdf_content, filename: pdf_name + '.pdf', type: 'application/pdf', disposition: disposition)
+          send_data(pdf_content, filename: options[:file_name], type: 'application/pdf', disposition: options[:disposition])
         end
       end
 
       def _html2pdf_make_pdf(options = {})
         render_opts = options.slice(:template, :layout, :formats, :handlers)
         html = render_to_string(render_opts)
-        Client.post(html: html, storage_url: options[:storage_url], pdf_options: options[:pdf_options]).body
+        response = Client.post(
+          html: html,
+          storage_url: options[:storage_url],
+          put_to_storage: options[:put_to_storage],
+          file_name: options[:file_name],
+          disposition: options[:disposition],
+          pdf_options: options[:pdf_options]
+        )
+        case response.code
+        when '200'
+          response.body
+        else
+          raise Html2Pdf::Rails::RequestError.new(response)
+        end
       end
     end
   end
