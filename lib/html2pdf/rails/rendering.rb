@@ -32,11 +32,6 @@ module Html2Pdf
 
       def _html2_pdf_render_pdf_and_get_url(pdf_name, options = {})
         options = _html2pdf_default_options(pdf_name, options)
-        unless /filename/.match(options[:disposition])
-          # NOTE: デフォルトでは Cloud Storage のファイルはディレクトリ名部分もファイル名になってしまうため、
-          # content-disposition でファイル名を指定する。
-          options[:disposition] += "; filename*=UTF-8''#{ERB::Util.url_encode(options[:file_name])}"
-        end
         options[:put_to_storage] = true
         json = JSON.parse _html2pdf_make_pdf(options)
         json['url']
