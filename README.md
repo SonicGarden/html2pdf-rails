@@ -78,60 +78,121 @@ class ThingsController < ApplicationController
 end
 ```
 
-### Uploading pdf to S3
-
-Add aws-sdk-s3 to your Gemfile.
-
-```ruby
-pdf_presigned_url = render_pdf_to_s3(pdf: pdf_file_name)
-```
-
 ### Cloud Functions for Firebase Sample
 
 ```javascript
 const functions = require("firebase-functions");
+const admin = require('firebase-admin');
 const puppeteer = require("puppeteer");
-const rp = require('request-promise');
+const uuidv4 = require('uuid/v4');
+const {promisify} = require('util');
 
 const runOptions = {
-  timeoutSeconds: 20,
-  memory: "1GB"
+  timeoutSeconds: 60,
+  memory: "2GB"
 };
-exports.html2pdf = functions
+
+admin.initializeApp();
+const storage = admin.storage();
+
+exports.pdf = functions
+  .region("asia-northeast1")
   .runWith(runOptions)
   .https.onRequest(
-    async ({ method, body: { html = "", storageUrl = null, pdfOptions = {} } }, res) => {
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox"]
-      });
-      const page = await browser.newPage();
-      await page.emulateMedia("print");
-      await page.goto("data:text/html;charset=UTF-8," + html, {
-        waitUntil: "networkidle0"
-      });
-      const pdf = await page.pdf(pdfOptions);
-      if (storageUrl) {
-        await putToStorage(storageUrl, pdf);
-        res.send("");
-      } else {
-        res.header({ "Content-Type": "application/pdf" });
-        res.send(pdf);
+    async ({method, body}, res) => {
+      try {
+        await handleHttp({method, body}, res);
+      } catch (err) {
+        // https://cloud.google.com/functions/docs/monitoring/error-reporting
+        if (err instanceof Error) {
+          console.error(err);
+        } else {
+          console.error(new Error(err));
+        }
+        res.status(500).end();
       }
     }
   );
-async function putToStorage(storageUrl, buffer) {
-  var options = {
-    method: 'PUT',
-    uri: storageUrl,
-    body: buffer,
-    headers: {
-      'content-type': 'application/pdf',
-    },
-    resolveWithFullResponse: true,
-  };
 
-  return rp(options);
+async function handleHttp({ method, body: { html = "", putToStorage = false, fileName = 'tmp', responseDisposition = null, pdfOptions = {} } }, res) {
+  setCors(res);
+  if (["OPTIONS"].includes(method)) return res.send("");
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '-–disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+    ]
+  });
+  const page = await browser.newPage();
+
+  // NOTE: suppress console warnings
+  page.on("console", consoleObj => console.log(consoleObj.text()));
+
+  await page.emulateMedia("print");
+  await page.setContent(html, {
+    waitUntil: ["load", "networkidle0"]
+  });
+  const pdf = await page.pdf(pdfOptions);
+  if (putToStorage) {
+    await putToCloudStorage(res, pdf, fileName, responseDisposition);
+  } else {
+    res.header({ "Content-Type": "application/pdf" });
+    res.send(pdf);
+  }
+  await browser.close();
+}
+
+function setCors(res) {
+  res.header({
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "*"
+  });
+}
+
+async function putToCloudStorage(res, buffer, fileName, responseDisposition) {
+  const newFile = await makeCloudStorageFile(buffer, fileName);
+  const [url] = await getSignedUrl(newFile, fileName, responseDisposition);
+  const json = JSON.stringify({url: url});
+  res.header({ "Content-Type": "application/json" });
+  res.send(json);
+}
+
+async function makeCloudStorageFile(buffer, fileName) {
+  const path = `${uuidv4()}/${fileName}`;
+  const newFile = storage.bucket().file(path);
+  const blobStream = newFile.createWriteStream({
+    metadata:{
+        contentType: 'application/pdf',
+    }
+  });
+  const end = promisify(blobStream.end).bind(blobStream);
+  await end(buffer);
+  return newFile;
+}
+
+function getSignedUrl(file, fileName, responseDisposition) {
+  if (responseDisposition === null) {
+    responseDisposition = 'inline';
+  }
+  if (!/filename/.test(responseDisposition)) {
+    responseDisposition += `; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+  }
+  const expiresAtMs = Date.now() + 300000;
+  const config = {
+      action: 'read',
+      expires: expiresAtMs,
+  };
+  if (responseDisposition) {
+    config.responseDisposition = responseDisposition;
+  }
+  return file.getSignedUrl(config);
 }
 ```
 
@@ -142,14 +203,6 @@ In `config/initializers/html2pdf_rails.rb`, you can configure the following valu
 ```ruby
 Html2Pdf.configure do |config|
   config.endpoint = 'YOUR_HTTP_TRIGGER_ENDPOINT'
-
-  # for s3 upload
-  config.s3 = {
-    region: 'YOUR_BUCKET_REGION',
-    access_key_id: 'YOUR_AWS_ACCESS_KEY_ID',
-    secret_access_key: 'YOUR_AWS_SECRET_ACCESS_KEY',
-    bucket: 'YOUR_BUCKET_NAME',
-  }
 end
 ```
 

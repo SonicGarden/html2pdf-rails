@@ -1,17 +1,12 @@
 # frozen_string_literal: true
 
 require 'html2pdf/rails/client'
-require 'html2pdf/rails/s3'
 
 module Html2Pdf
   module Rails
     module Rendering
       def render_to_pdf(options)
         _html2pdf_make_and_send_pdf(options.delete(:pdf), options)
-      end
-
-      def render_pdf_to_s3(options)
-        _html2pdf_render_pdf_to_s3(options.delete(:pdf), options)
       end
 
       def render_pdf_and_get_url(options)
@@ -37,14 +32,6 @@ module Html2Pdf
         json['url']
       end
 
-      def _html2pdf_render_pdf_to_s3(pdf_name, options = {})
-        options = _html2pdf_default_options(pdf_name, options)
-        options[:storage_url] = ::Html2Pdf::Rails::S3.presigned_put_url(options[:file_name])
-
-        _html2pdf_make_pdf(options)
-        ::Html2Pdf::Rails::S3.presigned_get_url(options[:file_name], disposition: options[:disposition])
-      end
-
       def _html2pdf_make_and_send_pdf(pdf_name, options = {})
         options = _html2pdf_default_options(pdf_name, options)
 
@@ -62,7 +49,6 @@ module Html2Pdf
         html = render_to_string(render_opts)
         response = Client.post(
           html: html,
-          storage_url: options[:storage_url],
           put_to_storage: options[:put_to_storage],
           file_name: options[:file_name],
           disposition: options[:disposition],
