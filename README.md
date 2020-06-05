@@ -82,118 +82,30 @@ end
 
 ```javascript
 const functions = require("firebase-functions");
-const admin = require('firebase-admin');
 const puppeteer = require("puppeteer");
-const uuidv4 = require('uuid/v4');
-const {promisify} = require('util');
 
 const runOptions = {
-  timeoutSeconds: 60,
-  memory: "2GB"
+  timeoutSeconds: 20,
+  memory: "1GB"
 };
-
-admin.initializeApp();
-const storage = admin.storage();
-
-exports.pdf = functions
-  .region("asia-northeast1")
+exports.html2pdf = functions
   .runWith(runOptions)
   .https.onRequest(
-    async ({method, body}, res) => {
-      try {
-        await handleHttp({method, body}, res);
-      } catch (err) {
-        // https://cloud.google.com/functions/docs/monitoring/error-reporting
-        if (err instanceof Error) {
-          console.error(err);
-        } else {
-          console.error(new Error(err));
-        }
-        res.status(500).end();
-      }
+    async ({ method, body: { html = "", pdfOptions = {} } }, res) => {
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ["--no-sandbox"]
+      });
+      const page = await browser.newPage();
+      await page.emulateMedia("print");
+      await page.goto("data:text/html;charset=UTF-8," + html, {
+        waitUntil: "networkidle0"
+      });
+      const pdf = await page.pdf(pdfOptions);
+      res.header({ "Content-Type": "application/pdf" });
+      res.send(pdf);
     }
   );
-
-async function handleHttp({ method, body: { html = "", putToStorage = false, fileName = 'tmp', responseDisposition = null, pdfOptions = {} } }, res) {
-  setCors(res);
-  if (["OPTIONS"].includes(method)) return res.send("");
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '-–disable-dev-shm-usage',
-      '--disable-gpu',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-    ]
-  });
-  const page = await browser.newPage();
-
-  // NOTE: suppress console warnings
-  page.on("console", consoleObj => console.log(consoleObj.text()));
-
-  await page.emulateMedia("print");
-  await page.setContent(html, {
-    waitUntil: ["load", "networkidle0"]
-  });
-  const pdf = await page.pdf(pdfOptions);
-  if (putToStorage) {
-    await putToCloudStorage(res, pdf, fileName, responseDisposition);
-  } else {
-    res.header({ "Content-Type": "application/pdf" });
-    res.send(pdf);
-  }
-  await browser.close();
-}
-
-function setCors(res) {
-  res.header({
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "*"
-  });
-}
-
-async function putToCloudStorage(res, buffer, fileName, responseDisposition) {
-  const newFile = await makeCloudStorageFile(buffer, fileName);
-  const [url] = await getSignedUrl(newFile, fileName, responseDisposition);
-  const json = JSON.stringify({url: url});
-  res.header({ "Content-Type": "application/json" });
-  res.send(json);
-}
-
-async function makeCloudStorageFile(buffer, fileName) {
-  const path = `${uuidv4()}/${fileName}`;
-  const newFile = storage.bucket().file(path);
-  const blobStream = newFile.createWriteStream({
-    metadata:{
-        contentType: 'application/pdf',
-    }
-  });
-  const end = promisify(blobStream.end).bind(blobStream);
-  await end(buffer);
-  return newFile;
-}
-
-function getSignedUrl(file, fileName, responseDisposition) {
-  if (responseDisposition === null) {
-    responseDisposition = 'inline';
-  }
-  if (!/filename/.test(responseDisposition)) {
-    responseDisposition += `; filename*=UTF-8''${encodeURIComponent(fileName)}`;
-  }
-  const expiresAtMs = Date.now() + 300000;
-  const config = {
-      action: 'read',
-      expires: expiresAtMs,
-  };
-  if (responseDisposition) {
-    config.responseDisposition = responseDisposition;
-  }
-  return file.getSignedUrl(config);
-}
 ```
 
 ## Configuration
