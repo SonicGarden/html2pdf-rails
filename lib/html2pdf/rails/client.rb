@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'html2pdf/rails/errors'
+
 module Html2Pdf
   module Rails
     class Client
@@ -11,11 +13,19 @@ module Html2Pdf
         @uri = URI.parse(endpoint)
       end
 
-      def post(html, pdf_options = {})
+      def post(html:, put_to_storage: false, file_name: nil, disposition: null, pdf_options: {})
         http = Net::HTTP.new(@uri.host, @uri.port).tap { |h| h.use_ssl = @uri.scheme == 'https' }
         request = Net::HTTP::Post.new(@uri.request_uri, headers)
-        request.body = { html: html, pdfOptions: pdf_options }.to_json
+        request.body = {
+          html: html,
+          putToStorage: put_to_storage,
+          fileName: file_name,
+          responseDisposition: disposition,
+          pdfOptions: pdf_options
+        }.to_json
         http.request(request)
+      rescue Net::ReadTimeout
+        raise Html2Pdf::Rails::NetworkError
       end
 
       private
