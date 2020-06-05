@@ -51,6 +51,14 @@ Layout
     #content= yield
 ```
 
+### Put PDF to Cloud Storage and return signed url
+You can get signed url of Cloud Storage if your Cloud Funciton code support it.
+
+```ruby
+  pdf_url = render_pdf_and_get_url pdf: 'file_name'
+  redirect_to pdf_url
+```
+
 ### Advanced Usage with all available options
 
 ```ruby
@@ -91,7 +99,7 @@ const runOptions = {
 exports.html2pdf = functions
   .runWith(runOptions)
   .https.onRequest(
-    async ({ method, body: { html = "", pdfOptions = {} } }, res) => {
+    async ({ method, body: { html = "", putToStorage = false, pdfOptions = {} } }, res) => {
       const browser = await puppeteer.launch({
         headless: true,
         args: ["--no-sandbox"]
@@ -102,8 +110,12 @@ exports.html2pdf = functions
         waitUntil: "networkidle0"
       });
       const pdf = await page.pdf(pdfOptions);
-      res.header({ "Content-Type": "application/pdf" });
-      res.send(pdf);
+      if (putToStorage) {
+        // Code for Cloud Storage is omitted.
+      } else {
+        res.header({ "Content-Type": "application/pdf" });
+        res.send(pdf);
+      }
     }
   );
 ```
