@@ -50,7 +50,7 @@ module Html2Pdf
         html = render_to_string(render_opts)
 
         Retryable.retryable(tries: 3, on: Html2Pdf::Rails::ServiceUnavailableError) do
-          response = Client.post(
+          Client.post(
             html: html,
             put_to_storage: options[:put_to_storage],
             file_name: options[:file_name],
