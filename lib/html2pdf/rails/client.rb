@@ -23,7 +23,16 @@ module Html2Pdf
           responseDisposition: disposition,
           pdfOptions: pdf_options
         }.to_json
-        http.request(request)
+        response = http.request(request)
+
+        case response.code
+        when '200'
+          response.body
+        when '503'
+          raise Html2Pdf::Rails::ServiceUnavailableError.new(response)
+        else
+          raise Html2Pdf::Rails::RequestError.new(response)
+        end
       rescue Net::ReadTimeout
         raise Html2Pdf::Rails::NetworkError
       end

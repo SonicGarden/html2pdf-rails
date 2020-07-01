@@ -12,5 +12,8 @@ module Html2Pdf
         @response = response
       end
     end
+
+    class ServiceUnavailableError < RequestError
+    end
   end
 end
