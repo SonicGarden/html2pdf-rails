@@ -13,7 +13,7 @@ module Html2Pdf
         @uri = URI.parse(endpoint)
       end
 
-      def post(html:, put_to_storage: false, file_name: nil, disposition: null, pdf_options: {})
+      def post(html:, put_to_storage: false, file_name: nil, disposition: nil, pdf_options: {})
         http = Net::HTTP.new(@uri.host, @uri.port).tap { |h| h.use_ssl = @uri.scheme == 'https' }
         request = Net::HTTP::Post.new(@uri.request_uri, headers)
         request.body = {
