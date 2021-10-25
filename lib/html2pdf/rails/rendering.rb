@@ -47,7 +47,7 @@ module Html2Pdf
 
       def _html2pdf_make_pdf(options = {})
         render_opts = options.slice(:template, :layout, :formats, :handlers)
-        html = render_to_string(render_opts)
+        html = render_to_string(**render_opts)
 
         Retryable.retryable(tries: 3, on: Html2Pdf::Rails::ServiceUnavailableError) do
           Client.post(
