@@ -5,8 +5,8 @@ require 'html2pdf/rails/errors'
 module Html2Pdf
   module Rails
     class Client
-      def self.post(*args)
-        self.new(Html2Pdf.config.endpoint).post(*args)
+      def self.post(**options)
+        self.new(Html2Pdf.config.endpoint).post(**options)
       end
 
       def initialize(endpoint)
