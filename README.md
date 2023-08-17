@@ -75,7 +75,7 @@ class ThingsController < ApplicationController
           show_as_html: params.key?('debug'), # allow debugging based on url param
           pdf_options: {                      # SEE: https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#pagepdfoptions
             margin: {
-              top: '30px'
+              top: '30px',
               bottom: '30px',
             }
           }
