@@ -73,7 +73,7 @@ class ThingsController < ApplicationController
           template: 'things/show',
           layout: 'pdf',                      # for a pdf.pdf.erb file
           show_as_html: params.key?('debug'), # allow debugging based on url param
-          pdf_options: {                      # SEE: https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#pagepdfoptions
+          pdf_options: {                      # SEE: https://pptr.dev/api/puppeteer.pdfoptions
             margin: {
               top: '30px',
               bottom: '30px',
