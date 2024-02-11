@@ -37,7 +37,7 @@ module Html2Pdf
         options = _html2pdf_default_options(pdf_name, options)
 
         if options[:show_as_html]
-          render_opts = options.slice(:template, :layout, :formats, :handlers)
+          render_opts = options.slice(:template, :layout, :formats, :handlers, :locals)
           render(render_opts.merge({ content_type: 'text/html' }))
         else
           pdf_content = _html2pdf_make_pdf(options)
