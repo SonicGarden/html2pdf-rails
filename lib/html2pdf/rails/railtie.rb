@@ -14,10 +14,11 @@ module Html2Pdf
         ActionView::Base.include Helper
       end
 
-      config.after_initialize do
+      config.after_initialize do |app|
         if Html2Pdf.config.endpoint.blank?
           raise 'Html2Pdf.config.endpoint is required'
         end
+        Html2Pdf.config.app ||= app.class.module_parent_name
       end
     end
   end

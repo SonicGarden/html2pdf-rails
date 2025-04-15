@@ -6,17 +6,19 @@ module Html2Pdf
   module Rails
     class Client
       def self.post(**options)
-        self.new(Html2Pdf.config.endpoint).post(**options)
+        self.new(Html2Pdf.config.endpoint, Html2Pdf.config.app).post(**options)
       end
 
-      def initialize(endpoint)
+      def initialize(endpoint, app)
         @uri = URI.parse(endpoint)
+        @app = app
       end
 
       def post(html:, put_to_storage: false, file_name: nil, disposition: nil, pdf_options: {})
         http = Net::HTTP.new(@uri.host, @uri.port).tap { |h| h.use_ssl = @uri.scheme == 'https' }
         request = Net::HTTP::Post.new(@uri.request_uri, headers)
         request.body = {
+          app: @app,
           html: html,
           putToStorage: put_to_storage,
           fileName: file_name,
