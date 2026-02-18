@@ -1,3 +1,5 @@
+![CI](https://github.com/SonicGarden/html2pdf-rails/actions/workflows/ci.yml/badge.svg)
+
 # html2pdf-rails
 
 PDF generator (from HTML) gem for Ruby on Rails.
