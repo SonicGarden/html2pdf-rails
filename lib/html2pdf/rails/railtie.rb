@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'rails'
 require 'html2pdf/rails/rendering'
 require 'html2pdf/rails/helper'
 
