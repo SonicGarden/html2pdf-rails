@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'html2pdf/rails'
 
 RSpec.describe Html2Pdf::Config do
   before do

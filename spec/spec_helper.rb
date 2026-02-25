@@ -1,6 +1,5 @@
 require 'bundler/setup'
-require 'active_support'
-require 'rails'
+require 'html2pdf/rails'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
