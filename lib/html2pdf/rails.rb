@@ -1,12 +1,14 @@
-require 'active_support/configurable'
 require 'html2pdf/rails/version'
 require 'html2pdf/rails/railtie'
 
 module Html2Pdf
   class Config
-    include ActiveSupport::Configurable
-    config_accessor :endpoint
-    config_accessor :app
+    attr_accessor :endpoint, :app
+
+    def initialize
+      @endpoint = nil
+      @app = nil
+    end
   end
 
   class << self
