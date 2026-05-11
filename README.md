@@ -163,7 +163,26 @@ In `config/initializers/html2pdf_rails.rb`, you can configure the following valu
 ```ruby
 Html2Pdf.configure do |config|
   config.endpoint = 'YOUR_HTTP_TRIGGER_ENDPOINT'
+
+  # Required when using `html2pdf_base_tag` from mailers or jobs (where `request` is unavailable).
+  # Optional in controller views (falls back to `request.host` / `request.protocol`).
+  config.default_host = 'example.com'
+  config.default_protocol = 'https'  # default: 'https'
 end
+```
+
+### `html2pdf_base_tag` in mailers / jobs
+
+`html2pdf_base_tag` resolves the base URL in this order:
+
+1. Explicit `host:` / `protocol:` argument
+2. `request.host` / `request.protocol` (only available in controller views)
+3. `Html2Pdf.config.default_host` / `Html2Pdf.config.default_protocol`
+
+So in mailer or job-rendered templates, configure `default_host` (and optionally `default_protocol`), or pass them explicitly:
+
+```erb
+<%= html2pdf_base_tag host: 'tenant.example.com', protocol: 'https' %>
 ```
 
 ## Contributing

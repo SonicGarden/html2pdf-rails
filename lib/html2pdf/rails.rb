@@ -6,11 +6,13 @@ require 'html2pdf/rails/railtie'
 
 module Html2Pdf
   class Config
-    attr_accessor :endpoint, :app
+    attr_accessor :endpoint, :app, :default_host, :default_protocol
 
     def initialize
       @endpoint = nil
       @app = nil
+      @default_host = nil
+      @default_protocol = nil
     end
   end
 
