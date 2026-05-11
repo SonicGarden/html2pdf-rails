@@ -8,17 +8,16 @@ module Html2Pdf
 
         host ||= req && (req.headers['HTTP_X_ORIGINAL_HOST'] || req.host)
         host ||= Html2Pdf.config.default_host
-        if host.nil? || host.empty?
+        if host.blank?
           raise ArgumentError,
                 'html2pdf_base_tag: host is not available. Pass `host:` or set Html2Pdf.config.default_host.'
         end
 
-        protocol ||= req&.protocol
+        protocol ||= req&.scheme
         protocol ||= Html2Pdf.config.default_protocol
         protocol ||= 'https'
-        protocol = "#{protocol}://" unless protocol.end_with?('://')
 
-        tag.base href: "#{protocol}#{host}"
+        tag.base href: "#{protocol}://#{host}"
       end
 
       private

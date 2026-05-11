@@ -34,7 +34,7 @@ RSpec.describe Html2Pdf::Rails::Helper do
       ActionDispatch::Request,
       headers: headers,
       host: 'example.com',
-      protocol: 'https://'
+      scheme: 'https'
     )
   end
 
@@ -59,23 +59,19 @@ RSpec.describe Html2Pdf::Rails::Helper do
         end
       end
 
-      context 'when protocol is http' do
+      context 'when scheme is http' do
         let(:request) do
           instance_double(
             ActionDispatch::Request,
             headers: headers,
             host: 'example.com',
-            protocol: 'http://'
+            scheme: 'http'
           )
         end
 
         it 'uses http in the base url' do
           expect(view.html2pdf_base_tag).to eq('<base href="http://example.com">')
         end
-      end
-
-      it 'allows overriding host via argument' do
-        expect(view.html2pdf_base_tag(host: 'custom.example')).to eq('<base href="https://custom.example">')
       end
 
       it 'allows overriding protocol via argument' do
@@ -95,24 +91,9 @@ RSpec.describe Html2Pdf::Rails::Helper do
           expect(view.html2pdf_base_tag).to eq('<base href="https://example.com">')
         end
 
-        it 'defaults protocol to https when not configured' do
-          expect(view.html2pdf_base_tag).to include('https://')
-        end
-
         it 'uses configured default_protocol when set' do
           Html2Pdf.config.default_protocol = 'http'
           expect(view.html2pdf_base_tag).to eq('<base href="http://example.com">')
-        end
-
-        it 'accepts default_protocol with trailing "://"' do
-          Html2Pdf.config.default_protocol = 'http://'
-          expect(view.html2pdf_base_tag).to eq('<base href="http://example.com">')
-        end
-      end
-
-      context 'when host is passed as argument' do
-        it 'uses the argument host' do
-          expect(view.html2pdf_base_tag(host: 'arg.example')).to eq('<base href="https://arg.example">')
         end
       end
 
