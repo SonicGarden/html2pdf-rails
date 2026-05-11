@@ -62,12 +62,24 @@ RSpec.describe Html2Pdf::Rails::Client do
 
       body = JSON.parse(captured_request.first.body)
       expect(body).to eq(
+        'app' => nil,
         'html' => '<html>x</html>',
         'putToStorage' => true,
         'fileName' => 'foo.pdf',
         'responseDisposition' => 'attachment',
         'pdfOptions' => { 'margin' => { 'top' => '10px' } }
       )
+    end
+
+    it 'sends the configured app in the JSON body' do
+      Html2Pdf.config.app = 'MyApp'
+
+      described_class.post(html: '<html></html>', pdf_options: {})
+
+      body = JSON.parse(captured_request.first.body)
+      expect(body['app']).to eq('MyApp')
+    ensure
+      Html2Pdf.config.app = nil
     end
 
     it 'sets Content-Type header to application/json' do
