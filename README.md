@@ -61,6 +61,40 @@ You can get signed url of Cloud Storage if your Cloud Funciton code support it.
   redirect_to pdf_url
 ```
 
+### Attach PDF to an email (ActionMailer)
+
+`render_to_pdf_string` is available in all mailers. It renders a template, converts it to PDF, and returns the PDF binary.
+
+```ruby
+class OrderMailer < ApplicationMailer
+  def receipt(order)
+    @order = order
+    attachments['receipt.pdf'] = render_to_pdf_string
+    mail(to: order.user.email)
+  end
+end
+```
+
+By default, the template is inferred from `<mailer_name>/<action_name>` and `formats: [:pdf]` is used. So the example above renders `order_mailer/receipt.pdf.erb`. You can override these defaults:
+
+```ruby
+attachments['receipt.pdf'] = render_to_pdf_string(
+  template: 'order_mailer/receipt_pdf',
+  layout: 'pdf',
+  pdf_options: { margin: { top: '30px' } }
+)
+```
+
+### Generate PDF from arbitrary HTML
+
+If you already have an HTML string (for example, in a background job or PORO), use the low-level API:
+
+```ruby
+html = ApplicationController.render(template: 'invoices/show', assigns: { invoice: invoice })
+pdf = Html2Pdf::Rails.generate(html: html, pdf_options: { margin: { top: '30px' } })
+File.binwrite('invoice.pdf', pdf)
+```
+
 ### Advanced Usage with all available options
 
 ```ruby

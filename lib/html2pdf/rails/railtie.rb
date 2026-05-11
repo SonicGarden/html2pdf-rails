@@ -2,6 +2,7 @@
 
 require 'rails'
 require 'html2pdf/rails/rendering'
+require 'html2pdf/rails/mailer_rendering'
 require 'html2pdf/rails/helper'
 
 module Html2Pdf
@@ -9,6 +10,10 @@ module Html2Pdf
     class Railtie < ::Rails::Railtie
       ActiveSupport.on_load(:action_controller) do
         ActionController::Base.prepend Rendering
+      end
+
+      ActiveSupport.on_load(:action_mailer) do
+        ActionMailer::Base.include MailerRendering
       end
 
       ActiveSupport.on_load(:action_view) do
