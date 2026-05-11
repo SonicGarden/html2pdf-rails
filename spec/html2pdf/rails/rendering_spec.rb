@@ -78,7 +78,7 @@ RSpec.describe Html2Pdf::Rails::Rendering do
 
       controller.render_to_pdf(pdf: 'invoice', pdf_options: { margin: { top: '10px' } })
 
-      expect(received).to eq(html: '<html>body</html>', pdf_options: { margin: { top: '10px' } })
+      expect(received).to include(html: '<html>body</html>', pdf_options: { margin: { top: '10px' } })
     end
 
     context 'when show_as_html is truthy' do

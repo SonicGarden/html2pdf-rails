@@ -73,6 +73,6 @@ RSpec.describe Html2Pdf::Rails::MailerRendering do
 
     mailer.render_to_pdf_string(pdf_options: { margin: { top: '30px' } })
 
-    expect(received_args).to eq(html: '<html>rendered</html>', pdf_options: { margin: { top: '30px' } })
+    expect(received_args).to include(html: '<html>rendered</html>', pdf_options: { margin: { top: '30px' } })
   end
 end

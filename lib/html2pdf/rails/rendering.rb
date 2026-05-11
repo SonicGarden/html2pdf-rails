@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'retryable'
-require 'html2pdf/rails/client'
-
 module Html2Pdf
   module Rails
     module Rendering
@@ -29,8 +26,14 @@ module Html2Pdf
       def _html2_pdf_render_pdf_and_get_url(pdf_name, options = {})
         options = _html2pdf_default_options(pdf_name, options)
         html = _html2pdf_render_html(options)
-        json = JSON.parse(_html2pdf_upload_pdf(html, options))
-        json['url']
+        response = Html2Pdf::Rails.generate(
+          html: html,
+          pdf_options: options[:pdf_options],
+          put_to_storage: true,
+          file_name: options[:file_name],
+          disposition: options[:disposition]
+        )
+        JSON.parse(response)['url']
       end
 
       def _html2pdf_make_and_send_pdf(pdf_name, options = {})
@@ -49,18 +52,6 @@ module Html2Pdf
       def _html2pdf_render_html(options)
         render_opts = options.slice(:template, :layout, :formats, :handlers)
         render_to_string(**render_opts)
-      end
-
-      def _html2pdf_upload_pdf(html, options)
-        Retryable.retryable(tries: 3, on: Html2Pdf::Rails::ServiceUnavailableError) do
-          Client.post(
-            html: html,
-            put_to_storage: true,
-            file_name: options[:file_name],
-            disposition: options[:disposition],
-            pdf_options: options[:pdf_options]
-          )
-        end
       end
     end
   end

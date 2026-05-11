@@ -27,9 +27,15 @@ module Html2Pdf
   end
 
   module Rails
-    def self.generate(html:, pdf_options: {})
+    def self.generate(html:, pdf_options: {}, put_to_storage: false, file_name: nil, disposition: nil)
       Retryable.retryable(tries: 3, on: ServiceUnavailableError) do
-        Client.post(html: html, pdf_options: pdf_options)
+        Client.post(
+          html: html,
+          pdf_options: pdf_options,
+          put_to_storage: put_to_storage,
+          file_name: file_name,
+          disposition: disposition
+        )
       end
     end
   end
