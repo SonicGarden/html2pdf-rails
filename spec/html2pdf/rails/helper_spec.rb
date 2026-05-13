@@ -10,17 +10,11 @@ RSpec.describe Html2Pdf::Rails::Helper do
       include Html2Pdf::Rails::Helper
 
       attr_accessor :request
+      attr_writer :stubbed_url_options
 
-      def output_buffer
-        @output_buffer ||= ActionView::OutputBuffer.new
+      def url_options
+        @stubbed_url_options || {}
       end
-    end
-  end
-
-  let(:view_class_without_request) do
-    Class.new do
-      include ActionView::Helpers::TagHelper
-      include Html2Pdf::Rails::Helper
 
       def output_buffer
         @output_buffer ||= ActionView::OutputBuffer.new
@@ -29,45 +23,42 @@ RSpec.describe Html2Pdf::Rails::Helper do
   end
 
   let(:headers) { {} }
-  let(:request) do
-    instance_double(
-      ActionDispatch::Request,
-      headers: headers,
-      host: 'example.com',
-      scheme: 'https'
-    )
-  end
+  let(:request_double) { instance_double(ActionDispatch::Request, headers: headers) }
+  let(:routes_default_url_options) { {} }
 
   before do
-    Html2Pdf.config.default_host = nil
-    Html2Pdf.config.default_protocol = nil
+    routes = double('routes', default_url_options: routes_default_url_options)
+    application = double('application', routes: routes)
+    allow(::Rails).to receive(:application).and_return(application)
   end
 
   describe '#html2pdf_base_tag' do
-    context 'when request is available (controller context)' do
-      let(:view) { view_class.new.tap { |v| v.request = request } }
+    # In real Rails, controller.url_options returns:
+    #   { host: request.host, protocol: request.protocol, ... }.merge!(class_default_url_options)
+    # so class default_url_options wins over request info, with request as fallback.
+    context 'in a controller view' do
+      let(:view) do
+        view_class.new.tap do |v|
+          v.request = request_double
+          v.stubbed_url_options = url_options_value
+        end
+      end
+      let(:url_options_value) { { host: 'example.com', protocol: 'https://' } }
 
-      it 'renders a base tag with the request host' do
+      it 'renders a base tag with the host from url_options' do
         expect(view.html2pdf_base_tag).to eq('<base href="https://example.com">')
       end
 
-      context 'when HTTP_X_ORIGINAL_HOST header is present' do
+      context 'when HTTP_X_ORIGINAL_HOST header is present (Ngrok)' do
         let(:headers) { { 'HTTP_X_ORIGINAL_HOST' => 'tunnel.ngrok.io' } }
 
-        it 'uses the original host instead of request.host' do
+        it 'uses the original host header' do
           expect(view.html2pdf_base_tag).to eq('<base href="https://tunnel.ngrok.io">')
         end
       end
 
-      context 'when scheme is http' do
-        let(:request) do
-          instance_double(
-            ActionDispatch::Request,
-            headers: headers,
-            host: 'example.com',
-            scheme: 'http'
-          )
-        end
+      context 'when protocol in url_options is http' do
+        let(:url_options_value) { { host: 'example.com', protocol: 'http://' } }
 
         it 'uses http in the base url' do
           expect(view.html2pdf_base_tag).to eq('<base href="http://example.com">')
@@ -77,46 +68,46 @@ RSpec.describe Html2Pdf::Rails::Helper do
       it 'allows overriding protocol via argument' do
         expect(view.html2pdf_base_tag(protocol: 'http')).to eq('<base href="http://example.com">')
       end
+
+      it 'allows overriding host via argument' do
+        expect(view.html2pdf_base_tag(host: 'arg.example')).to eq('<base href="https://arg.example">')
+      end
     end
 
-    context 'when request is not available (mailer/job context)' do
-      let(:view) { view_class_without_request.new }
+    context 'in a mailer or job view (no request)' do
+      let(:view) do
+        view_class.new.tap { |v| v.stubbed_url_options = url_options_value }
+      end
+      let(:url_options_value) { {} }
 
-      context 'with config defaults set' do
-        before do
-          Html2Pdf.config.default_host = 'example.com'
-        end
+      context 'with config.action_mailer.default_url_options style url_options' do
+        let(:url_options_value) { { host: 'example.com' } }
 
-        it 'uses the configured default host' do
+        it 'uses the host from url_options' do
           expect(view.html2pdf_base_tag).to eq('<base href="https://example.com">')
         end
 
-        it 'uses configured default_protocol when set' do
-          Html2Pdf.config.default_protocol = 'http'
-          expect(view.html2pdf_base_tag).to eq('<base href="http://example.com">')
+        context 'when protocol is also set' do
+          let(:url_options_value) { { host: 'example.com', protocol: 'http' } }
+
+          it 'uses the protocol from url_options' do
+            expect(view.html2pdf_base_tag).to eq('<base href="http://example.com">')
+          end
         end
       end
 
-      context 'when no host is available' do
+      context 'with only Rails.application.routes.default_url_options set' do
+        let(:routes_default_url_options) { { host: 'routes.example' } }
+
+        it 'falls back to routes default_url_options' do
+          expect(view.html2pdf_base_tag).to eq('<base href="https://routes.example">')
+        end
+      end
+
+      context 'when no host is available anywhere' do
         it 'raises ArgumentError' do
           expect { view.html2pdf_base_tag }.to raise_error(ArgumentError, /host is not available/)
         end
-      end
-    end
-
-    context 'argument precedence' do
-      let(:view) { view_class.new.tap { |v| v.request = request } }
-
-      before do
-        Html2Pdf.config.default_host = 'config.example'
-      end
-
-      it 'prefers explicit argument over request and config' do
-        expect(view.html2pdf_base_tag(host: 'arg.example')).to eq('<base href="https://arg.example">')
-      end
-
-      it 'prefers request over config when argument is not given' do
-        expect(view.html2pdf_base_tag).to eq('<base href="https://example.com">')
       end
     end
   end
