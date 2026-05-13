@@ -61,6 +61,40 @@ You can get signed url of Cloud Storage if your Cloud Funciton code support it.
   redirect_to pdf_url
 ```
 
+### Attach PDF to an email (ActionMailer)
+
+`render_to_pdf_string` is available in all mailers. It renders a template, converts it to PDF, and returns the PDF binary.
+
+```ruby
+class OrderMailer < ApplicationMailer
+  def receipt(order)
+    @order = order
+    attachments['receipt.pdf'] = render_to_pdf_string
+    mail(to: order.user.email)
+  end
+end
+```
+
+By default, the template is inferred from `<mailer_name>/<action_name>` and `formats: [:pdf]` is used. So the example above renders `order_mailer/receipt.pdf.erb`. You can override these defaults:
+
+```ruby
+attachments['receipt.pdf'] = render_to_pdf_string(
+  template: 'order_mailer/receipt_pdf',
+  layout: 'pdf',
+  pdf_options: { margin: { top: '30px' } }
+)
+```
+
+### Generate PDF from arbitrary HTML
+
+If you already have an HTML string (for example, in a background job or PORO), use the low-level API:
+
+```ruby
+html = ApplicationController.render(template: 'invoices/show', assigns: { invoice: invoice })
+pdf = Html2Pdf::Rails.generate(html: html, pdf_options: { margin: { top: '30px' } })
+File.binwrite('invoice.pdf', pdf)
+```
+
 ### Advanced Usage with all available options
 
 ```ruby
@@ -130,6 +164,30 @@ In `config/initializers/html2pdf_rails.rb`, you can configure the following valu
 Html2Pdf.configure do |config|
   config.endpoint = 'YOUR_HTTP_TRIGGER_ENDPOINT'
 end
+```
+
+### `html2pdf_base_tag` in mailers / jobs
+
+`html2pdf_base_tag` resolves the base URL in this order (matches Rails `url_for`):
+
+1. Explicit `host:` / `protocol:` argument
+2. `HTTP_X_ORIGINAL_HOST` request header (host only, for Ngrok-style proxying)
+3. View-context `url_options[:host]` / `[:protocol]`:
+   - In a controller view: `config.action_controller.default_url_options` merged over `request.host` / `request.protocol` (config wins, request as fallback — same behavior as Rails `url_for`)
+   - In a mailer view: `config.action_mailer.default_url_options`
+4. `Rails.application.routes.default_url_options[:host]` / `[:protocol]` (final fallback)
+
+Most Rails apps already configure `config.action_mailer.default_url_options` for mailer URL helpers, so no extra setup is usually required:
+
+```ruby
+# config/environments/production.rb
+config.action_mailer.default_url_options = { host: 'example.com', protocol: 'https' }
+```
+
+If you want to override per-call (e.g. multi-tenant), pass arguments:
+
+```erb
+<%= html2pdf_base_tag host: 'tenant.example.com', protocol: 'https' %>
 ```
 
 ## Contributing
