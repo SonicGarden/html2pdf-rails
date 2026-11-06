@@ -7,10 +7,18 @@ require 'html2pdf/rails/railtie'
 module Html2Pdf
   class Config
     attr_accessor :endpoint, :app
+    attr_writer :api_key
 
     def initialize
       @endpoint = nil
       @app = nil
+      @api_key = nil
+    end
+
+    # Falls back to ENV at read time (not in #initialize) so that the key can be
+    # set after the config object is built, e.g. by dotenv loading later in boot.
+    def api_key
+      @api_key || ENV['HTML2PDF_API_KEY']
     end
   end
 

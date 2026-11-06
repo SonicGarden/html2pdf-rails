@@ -88,6 +88,77 @@ RSpec.describe Html2Pdf::Rails::Client do
       expect(captured_request.first['Content-Type']).to eq('application/json')
     end
 
+    describe 'Authorization header' do
+      around do |example|
+        original = ENV.delete('HTML2PDF_API_KEY')
+        example.run
+      ensure
+        Html2Pdf.config.api_key = nil
+        original.nil? ? ENV.delete('HTML2PDF_API_KEY') : ENV['HTML2PDF_API_KEY'] = original
+      end
+
+      it 'is not sent when no API key is configured' do
+        described_class.post(html: '<html></html>', pdf_options: {})
+
+        expect(captured_request.first['Authorization']).to be_nil
+      end
+
+      it 'sends the configured API key as a Bearer token' do
+        Html2Pdf.config.api_key = 'sgh2p_configured'
+
+        described_class.post(html: '<html></html>', pdf_options: {})
+
+        expect(captured_request.first['Authorization']).to eq('Bearer sgh2p_configured')
+      end
+
+      it 'falls back to ENV["HTML2PDF_API_KEY"]' do
+        ENV['HTML2PDF_API_KEY'] = 'sgh2p_from_env'
+
+        described_class.post(html: '<html></html>', pdf_options: {})
+
+        expect(captured_request.first['Authorization']).to eq('Bearer sgh2p_from_env')
+      end
+
+      it 'prefers the configured API key over ENV' do
+        ENV['HTML2PDF_API_KEY'] = 'sgh2p_from_env'
+        Html2Pdf.config.api_key = 'sgh2p_configured'
+
+        described_class.post(html: '<html></html>', pdf_options: {})
+
+        expect(captured_request.first['Authorization']).to eq('Bearer sgh2p_configured')
+      end
+
+      it 'is not sent when the API key is an empty string' do
+        ENV['HTML2PDF_API_KEY'] = ''
+
+        described_class.post(html: '<html></html>', pdf_options: {})
+
+        expect(captured_request.first['Authorization']).to be_nil
+      end
+    end
+
+    context 'when response is 401' do
+      let(:response_code) { '401' }
+
+      it 'raises UnauthorizedError, which is a RequestError' do
+        expect {
+          described_class.post(html: '<html></html>', pdf_options: {})
+        }.to raise_error(Html2Pdf::Rails::UnauthorizedError, /api_key/) { |e|
+          expect(e).to be_a(Html2Pdf::Rails::RequestError)
+        }
+      end
+
+      it 'does not include the API key in the error message' do
+        Html2Pdf.config.api_key = 'sgh2p_secret'
+
+        expect {
+          described_class.post(html: '<html></html>', pdf_options: {})
+        }.to raise_error(Html2Pdf::Rails::UnauthorizedError) { |e| expect(e.message).not_to include('sgh2p_secret') }
+      ensure
+        Html2Pdf.config.api_key = nil
+      end
+    end
+
     context 'when response is 503' do
       let(:response_code) { '503' }
 

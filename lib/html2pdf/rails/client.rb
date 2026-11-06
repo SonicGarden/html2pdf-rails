@@ -6,12 +6,13 @@ module Html2Pdf
   module Rails
     class Client
       def self.post(**options)
-        self.new(Html2Pdf.config.endpoint, Html2Pdf.config.app).post(**options)
+        self.new(Html2Pdf.config.endpoint, Html2Pdf.config.app, api_key: Html2Pdf.config.api_key).post(**options)
       end
 
-      def initialize(endpoint, app)
+      def initialize(endpoint, app, api_key: nil)
         @uri = URI.parse(endpoint)
         @app = app
+        @api_key = api_key
       end
 
       def post(html:, put_to_storage: false, file_name: nil, disposition: nil, pdf_options: {})
@@ -30,6 +31,8 @@ module Html2Pdf
         case response.code
         when '200'
           response.body
+        when '401'
+          raise Html2Pdf::Rails::UnauthorizedError.new(response)
         when '503'
           raise Html2Pdf::Rails::ServiceUnavailableError.new(response)
         else
@@ -42,7 +45,9 @@ module Html2Pdf
       private
 
       def headers
-        { 'Content-Type' => 'application/json' }
+        headers = { 'Content-Type' => 'application/json' }
+        headers['Authorization'] = "Bearer #{@api_key}" if @api_key && !@api_key.empty?
+        headers
       end
     end
   end

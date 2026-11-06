@@ -22,6 +22,17 @@ RSpec.describe Html2Pdf::Config do
       expect(Html2Pdf.config.endpoint).to be_nil
       expect(Html2Pdf.config.app).to be_nil
     end
+
+    it 'reads api_key from ENV["HTML2PDF_API_KEY"] when not configured' do
+      original = ENV['HTML2PDF_API_KEY']
+      ENV['HTML2PDF_API_KEY'] = 'sgh2p_from_env'
+      expect(Html2Pdf.config.api_key).to eq('sgh2p_from_env')
+
+      Html2Pdf.config.api_key = 'sgh2p_configured'
+      expect(Html2Pdf.config.api_key).to eq('sgh2p_configured')
+    ensure
+      original.nil? ? ENV.delete('HTML2PDF_API_KEY') : ENV['HTML2PDF_API_KEY'] = original
+    end
   end
 
   describe '.configure' do
