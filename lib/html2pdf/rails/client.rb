@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'html2pdf/rails/errors'
+require 'html2pdf/rails/api_key'
 
 module Html2Pdf
   module Rails
@@ -12,7 +13,7 @@ module Html2Pdf
       def initialize(endpoint, app, api_key: nil)
         @uri = URI.parse(endpoint)
         @app = app
-        @api_key = api_key
+        @api_key = Html2Pdf::Rails::ApiKey.normalize(api_key)
       end
 
       def post(html:, put_to_storage: false, file_name: nil, disposition: nil, pdf_options: {})
@@ -46,7 +47,7 @@ module Html2Pdf
 
       def headers
         headers = { 'Content-Type' => 'application/json' }
-        headers['Authorization'] = "Bearer #{@api_key}" if @api_key && !@api_key.empty?
+        headers['Authorization'] = "Bearer #{@api_key}" if @api_key
         headers
       end
     end

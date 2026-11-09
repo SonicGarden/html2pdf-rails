@@ -170,6 +170,8 @@ end
 
 If your endpoint requires an API key, set `api_key`. It is sent as `Authorization: Bearer <api_key>`.
 When `api_key` is not set, `ENV['HTML2PDF_API_KEY']` is used, so in most cases you only need to set the environment variable.
+Surrounding whitespace (such as a trailing newline) is removed, and a blank `api_key` (`nil`, `''` or only whitespace) is treated as not set.
+A key that contains whitespace raises `Html2Pdf::Rails::InvalidApiKeyError` before any request is sent; the key itself is not included in the message.
 
 ```ruby
 Html2Pdf.configure do |config|

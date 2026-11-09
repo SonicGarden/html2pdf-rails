@@ -3,6 +3,10 @@ module Html2Pdf
     class NetworkError < StandardError
     end
 
+    # Raised when the configured API key cannot be sent as a header value.
+    class InvalidApiKeyError < ArgumentError
+    end
+
     class RequestError < StandardError
       attr_reader :response
 

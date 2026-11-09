@@ -1,6 +1,7 @@
 require 'retryable'
 require 'html2pdf/rails/version'
 require 'html2pdf/rails/errors'
+require 'html2pdf/rails/api_key'
 require 'html2pdf/rails/client'
 require 'html2pdf/rails/railtie'
 
@@ -17,8 +18,10 @@ module Html2Pdf
 
     # Falls back to ENV at read time (not in #initialize) so that the key can be
     # set after the config object is built, e.g. by dotenv loading later in boot.
+    # A blank value also falls back, because `credentials.xxx.to_s` and the like
+    # yield '' when the key is not set.
     def api_key
-      @api_key || ENV['HTML2PDF_API_KEY']
+      Html2Pdf::Rails::ApiKey.normalize(@api_key) || Html2Pdf::Rails::ApiKey.normalize(ENV['HTML2PDF_API_KEY'])
     end
   end
 
