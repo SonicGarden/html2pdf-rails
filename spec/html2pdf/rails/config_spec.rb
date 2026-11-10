@@ -3,13 +3,8 @@
 require 'spec_helper'
 
 RSpec.describe Html2Pdf::Config do
-  # Restore the config afterwards so that keys set here do not leak into other spec files.
-  around do |example|
-    original = Html2Pdf.instance_variable_get(:@config)
+  before do
     Html2Pdf.instance_variable_set(:@config, nil)
-    example.run
-  ensure
-    Html2Pdf.instance_variable_set(:@config, original)
   end
 
   describe '.config' do
@@ -29,24 +24,14 @@ RSpec.describe Html2Pdf::Config do
     end
 
     it 'reads api_key from ENV["HTML2PDF_API_KEY"] when not configured' do
-      original = ENV['HTML2PDF_API_KEY']
       ENV['HTML2PDF_API_KEY'] = 'sgh2p_from_env'
       expect(Html2Pdf.config.api_key).to eq('sgh2p_from_env')
 
       Html2Pdf.config.api_key = 'sgh2p_configured'
       expect(Html2Pdf.config.api_key).to eq('sgh2p_configured')
-    ensure
-      original.nil? ? ENV.delete('HTML2PDF_API_KEY') : ENV['HTML2PDF_API_KEY'] = original
     end
 
     describe 'api_key normalization' do
-      around do |example|
-        original = ENV.delete('HTML2PDF_API_KEY')
-        example.run
-      ensure
-        original.nil? ? ENV.delete('HTML2PDF_API_KEY') : ENV['HTML2PDF_API_KEY'] = original
-      end
-
       it 'falls back to ENV when the configured key is blank' do
         ENV['HTML2PDF_API_KEY'] = 'sgh2p_from_env'
         ['', '  ', nil].each do |blank|

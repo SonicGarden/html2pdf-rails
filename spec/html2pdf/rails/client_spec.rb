@@ -89,16 +89,6 @@ RSpec.describe Html2Pdf::Rails::Client do
     end
 
     describe 'Authorization header' do
-      around do |example|
-        original = ENV.delete('HTML2PDF_API_KEY')
-        # Read the ivar, because the reader falls back to ENV.
-        original_api_key = Html2Pdf.config.instance_variable_get(:@api_key)
-        example.run
-      ensure
-        Html2Pdf.config.api_key = original_api_key
-        original.nil? ? ENV.delete('HTML2PDF_API_KEY') : ENV['HTML2PDF_API_KEY'] = original
-      end
-
       it 'is not sent when no API key is configured' do
         described_class.post(html: '<html></html>', pdf_options: {})
 
@@ -189,8 +179,6 @@ RSpec.describe Html2Pdf::Rails::Client do
         expect {
           described_class.post(html: '<html></html>', pdf_options: {})
         }.to raise_error(Html2Pdf::Rails::UnauthorizedError) { |e| expect(e.message).not_to include('sgh2p_secret') }
-      ensure
-        Html2Pdf.config.api_key = nil
       end
     end
 
