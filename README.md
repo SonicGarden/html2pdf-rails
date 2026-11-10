@@ -166,6 +166,22 @@ Html2Pdf.configure do |config|
 end
 ```
 
+### API key
+
+If your endpoint requires an API key, set `api_key`. It is sent as `Authorization: Bearer <api_key>`.
+When `api_key` is not set, `ENV['HTML2PDF_API_KEY']` is used, so in most cases you only need to set the environment variable.
+Surrounding whitespace (such as a trailing newline) is removed, and a blank `api_key` (`nil`, `''` or only whitespace) is treated as not set.
+A key that contains whitespace raises `Html2Pdf::Rails::InvalidApiKeyError` before any request is sent; the key itself is not included in the message.
+
+```ruby
+Html2Pdf.configure do |config|
+  config.endpoint = 'YOUR_HTTP_TRIGGER_ENDPOINT'
+  config.api_key = Rails.application.credentials.html2pdf_api_key # optional; defaults to ENV['HTML2PDF_API_KEY']
+end
+```
+
+If the endpoint rejects the key (HTTP 401), `Html2Pdf::Rails::UnauthorizedError` (a subclass of `Html2Pdf::Rails::RequestError`) is raised. It is not retried.
+
 ### `html2pdf_base_tag` in mailers / jobs
 
 `html2pdf_base_tag` resolves the base URL in this order (matches Rails `url_for`):

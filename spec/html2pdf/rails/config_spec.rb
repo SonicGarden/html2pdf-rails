@@ -22,6 +22,47 @@ RSpec.describe Html2Pdf::Config do
       expect(Html2Pdf.config.endpoint).to be_nil
       expect(Html2Pdf.config.app).to be_nil
     end
+
+    it 'reads api_key from ENV["HTML2PDF_API_KEY"] when not configured' do
+      ENV['HTML2PDF_API_KEY'] = 'sgh2p_from_env'
+      expect(Html2Pdf.config.api_key).to eq('sgh2p_from_env')
+
+      Html2Pdf.config.api_key = 'sgh2p_configured'
+      expect(Html2Pdf.config.api_key).to eq('sgh2p_configured')
+    end
+
+    describe 'api_key normalization' do
+      it 'falls back to ENV when the configured key is blank' do
+        ENV['HTML2PDF_API_KEY'] = 'sgh2p_from_env'
+        ['', '  ', nil].each do |blank|
+          Html2Pdf.config.api_key = blank
+          expect(Html2Pdf.config.api_key).to eq('sgh2p_from_env')
+        end
+      end
+
+      it 'is nil when both the configured key and ENV are blank' do
+        ENV['HTML2PDF_API_KEY'] = " \n"
+        Html2Pdf.config.api_key = ''
+        expect(Html2Pdf.config.api_key).to be_nil
+      end
+
+      it 'removes surrounding whitespace such as a trailing newline' do
+        Html2Pdf.config.api_key = " sgh2p_configured\n"
+        expect(Html2Pdf.config.api_key).to eq('sgh2p_configured')
+      end
+
+      it 'converts a non-string value to a string' do
+        Html2Pdf.config.api_key = 12345
+        expect(Html2Pdf.config.api_key).to eq('12345')
+      end
+
+      it 'raises InvalidApiKeyError without the key in the message when the key contains whitespace' do
+        Html2Pdf.config.api_key = "sgh2p_secret\nvalue"
+        expect { Html2Pdf.config.api_key }.to raise_error(Html2Pdf::Rails::InvalidApiKeyError) { |e|
+          expect(e.message).not_to include('sgh2p_secret')
+        }
+      end
+    end
   end
 
   describe '.configure' do
